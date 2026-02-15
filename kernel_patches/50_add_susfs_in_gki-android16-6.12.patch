@@ -134,7 +134,7 @@ index f5f972488..f42ac349b 100644
  	 * We move the actual failure in case of RLIMIT_NPROC excess from
  	 * set*uid() to execve() because too many poorly written programs
 diff --git a/fs/namei.c b/fs/namei.c
-index bdc243fc4..e624f0b13 100644
+index bdc243fc4..f83b3cd37 100644
 --- a/fs/namei.c
 +++ b/fs/namei.c
 @@ -40,10 +40,18 @@
@@ -149,7 +149,7 @@ index bdc243fc4..e624f0b13 100644
  #include "mount.h"
  
 +#ifdef CONFIG_KSU_SUSFS_SUS_PATH
-+extern bool susfs_is_inode_sus_path(struct inode *inode);
++extern bool susfs_is_inode_sus_path(struct mnt_idmap* idmap, struct inode *inode);
 +extern const struct qstr susfs_fake_qstr_name;
 +#endif
 +
@@ -562,7 +562,7 @@ index bdc243fc4..e624f0b13 100644
  	if ((flags & RENAME_NOREPLACE) && d_is_positive(new_dentry))
  		goto exit5;
 diff --git a/fs/namespace.c b/fs/namespace.c
-index 6739e1c04..741046b18 100644
+index 6739e1c04..460f4d328 100644
 --- a/fs/namespace.c
 +++ b/fs/namespace.c
 @@ -33,11 +33,25 @@
@@ -884,24 +884,24 @@ index 6739e1c04..741046b18 100644
 +void susfs_reorder_mnt_id(void) {
 +	struct mnt_namespace *mnt_ns = current->nsproxy->mnt_ns;
 +	struct mount *r, *first;
-+	struct rb_node *node;
 +	int first_mnt_id = 0;
 +
 +	// Do not reorder the mnt_id if there is no any ksu mount at all
-+	if (atomic64_read(&susfs_ksu_mounts) == 0) {
++	if (atomic64_read(&susfs_ksu_mounts) == 0)
 +		return;
-+	}
 +
 +	down_read(&namespace_sem); // needed when manipulating mnt_namespace
 +	lock_mount_hash(); // needed when modifying mount
 +
 +	first = node_to_mount(rb_first(&mnt_ns->mounts));
++	if (!first)
++		goto out_unlock_mount_hash;
++
 +	first_mnt_id = first->mnt_id;
 +
-+	for (; r = first; r = listmnt_next(r, false)) {
-+		if (r->mnt_id == DEFAULT_KSU_MNT_ID) {
++	for (r = first; r; r = listmnt_next(r, false)) {
++		if (r->mnt_id == DEFAULT_KSU_MNT_ID)
 +			continue;
-+		}
 +		WRITE_ONCE(r->mnt.susfs_mnt_id_backup, READ_ONCE(r->mnt_id));
 +		WRITE_ONCE(r->mnt_id, first_mnt_id++);
 +	}
@@ -1460,7 +1460,7 @@ index b4204f045..921d5b2f1 100644
  }
  
 diff --git a/fs/readdir.c b/fs/readdir.c
-index 6d29cab85..9f682883f 100644
+index 6d29cab85..77213f638 100644
 --- a/fs/readdir.c
 +++ b/fs/readdir.c
 @@ -22,6 +22,10 @@
@@ -1469,7 +1469,7 @@ index 6d29cab85..9f682883f 100644
  
 +#ifdef CONFIG_KSU_SUSFS_SUS_PATH
 +#include <linux/susfs_def.h>
-+extern bool susfs_is_inode_sus_path(struct inode *inode);
++extern bool susfs_is_inode_sus_path(struct mnt_idmap* idmap, struct inode *inode);
 +#endif
  /*
   * Some filesystems were never converted to '->iterate_shared()'
