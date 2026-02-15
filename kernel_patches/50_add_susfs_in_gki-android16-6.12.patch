@@ -1224,7 +1224,7 @@ index 5e391cbca..00d4e0fb8 100644
  	/* show_fd_locks() never dereferences files, so a stale value is safe */
  	show_fd_locks(m, file, files);
 diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
-index 7cd33b742..fa63bf069 100644
+index 7cd33b742..a87968582 100644
 --- a/fs/proc/task_mmu.c
 +++ b/fs/proc/task_mmu.c
 @@ -27,6 +27,9 @@
@@ -1345,10 +1345,10 @@ index 7cd33b742..fa63bf069 100644
  
  	if (!mm || !mmget_not_zero(mm))
  		goto out;
-@@ -2257,6 +2330,17 @@ static ssize_t pagemap_read(struct file *file, char __user *buf,
+@@ -2256,6 +2329,17 @@ static ssize_t pagemap_read(struct file *file, char __user *buf,
+ 		if (ret)
  			goto out_free;
  		ret = walk_page_range(mm, start_vaddr, end, &pagemap_ops, &pm);
- 		mmap_read_unlock(mm);
 +#ifdef CONFIG_KSU_SUSFS_SUS_MAP
 +		vma = find_vma(mm, start_vaddr);
 +		if (vma && vma->vm_file) {
@@ -1360,9 +1360,9 @@ index 7cd33b742..fa63bf069 100644
 +			}
 +		}
 +#endif
+ 		mmap_read_unlock(mm);
  		start_vaddr = end;
  
- 		len = min(count, PM_ENTRY_BYTES * pm.pos);
 diff --git a/fs/proc_namespace.c b/fs/proc_namespace.c
 index e133b507d..943c557c9 100644
 --- a/fs/proc_namespace.c
