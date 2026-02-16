@@ -1898,34 +1898,6 @@ index 788f02c9e..a9803d532 100644
  } __randomize_layout;
  
  static inline struct mnt_idmap *mnt_idmap(const struct vfsmount *mnt)
-diff --git a/init/main.c b/init/main.c
-index cf1296697..fe025ea22 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -937,6 +937,10 @@ static int __init task_struct_vendor_size_setup(char *str)
- early_param("android_arch_task_struct_size", task_struct_vendor_size_setup);
- #endif
- 
-+#ifdef CONFIG_KSU_SUSFS
-+extern bool susfs_is_sdcard_android_data_decrypted __read_mostly;
-+#endif
-+
- asmlinkage __visible __init __no_sanitize_address __noreturn __no_stack_protector
- void start_kernel(void)
- {
-@@ -977,6 +981,12 @@ void start_kernel(void)
- 	boot_cpu_hotplug_init();
- 
- 	pr_notice("Kernel command line: %s\n", saved_command_line);
-+#ifdef CONFIG_KSU_SUSFS
-+	if (strstr("=recovery", saved_command_line)) {
-+		pr_notice("susfs: kernel is likely run in recovery mode, set susfs_is_sdcard_android_data_decrypted to true\n");
-+		susfs_is_sdcard_android_data_decrypted = true;
-+	}
-+#endif
- 	/* parameters may set static keys */
- 	parse_early_param();
- 	after_dashes = parse_args("Booting kernel",
 diff --git a/kernel/kallsyms.c b/kernel/kallsyms.c
 index a9a0ca605..3b4b2f882 100644
 --- a/kernel/kallsyms.c
