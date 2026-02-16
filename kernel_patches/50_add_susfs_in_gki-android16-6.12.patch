@@ -1899,7 +1899,7 @@ index 788f02c9e..a9803d532 100644
  
  static inline struct mnt_idmap *mnt_idmap(const struct vfsmount *mnt)
 diff --git a/init/main.c b/init/main.c
-index cf1296697..7911d3479 100644
+index cf1296697..fe025ea22 100644
 --- a/init/main.c
 +++ b/init/main.c
 @@ -937,6 +937,10 @@ static int __init task_struct_vendor_size_setup(char *str)
@@ -1918,8 +1918,8 @@ index cf1296697..7911d3479 100644
  
  	pr_notice("Kernel command line: %s\n", saved_command_line);
 +#ifdef CONFIG_KSU_SUSFS
-+	if (strstr(saved_command_line, "=recovery")) {
-+		pr_info("susfs: kernel is likely run in recovery mode, set susfs_is_sdcard_android_data_decrypted to true to stop assigning sus mnt_id/mnt_group_id\n");
++	if (strstr("=recovery", saved_command_line)) {
++		pr_notice("susfs: kernel is likely run in recovery mode, set susfs_is_sdcard_android_data_decrypted to true\n");
 +		susfs_is_sdcard_android_data_decrypted = true;
 +	}
 +#endif
