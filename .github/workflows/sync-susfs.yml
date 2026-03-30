@@ -1,0 +1,48 @@
+name: Sync SusFS Branches
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sincronizacion
+        run: |
+          # 1. Configurar remoto
+          git remote add upstream https://gitlab.com/simonpunk/susfs4ksu.git
+          
+          # 2. Descargar todo lo de GitLab sin tocar tu rama actual
+          git fetch upstream --tags --force
+          
+          # 3. Mapear y empujar directamente (Remoto A -> Remoto B)
+          # Esto actualiza las ramas en GitHub sin pasar por tu working directory
+          git push origin refs/remotes/upstream/gki-android14-6.1:refs/heads/gki-android14-6.1 --force
+          git push origin refs/remotes/upstream/gki-android15-6.6:refs/heads/gki-android15-6.6 --force
+          git push origin refs/remotes/upstream/gki-android16-6.12:refs/heads/gki-android16-6.12 --force
+          
+          # 4. Sincronizar tags de forma global
+          #git push origin --tags --force
+
+          # 4. Filtrar y empujar solo tags de 2026 en adelante
+          # %(creatordate:short) nos da el formato YYYY-MM-DD
+          echo "Buscando etiquetas nuevas (>= 2026)..."
+          TAGS_A_SUBIR=$(git for-each-ref --format='%(creatordate:short) %(refname:short)' refs/tags | \
+          awk '$1 >= "2026-01-01" {print $2}')
+          
+          if [ -z "$TAGS_A_SUBIR" ]; then
+            echo "No se encontraron etiquetas nuevas para subir."
+          else
+            for tag in $TAGS_A_SUBIR; do
+              echo "Sincronizando etiqueta: $tag"
+              git push origin "refs/tags/$tag:refs/tags/$tag" --force
+            done
+          fi
+
